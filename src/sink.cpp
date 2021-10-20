@@ -7,7 +7,6 @@ Sink32 Sink32::operator+(std::uint32_t addend)
         exp = ((exp >> MANTISSA_BITS) + 1) << MANTISSA_BITS;
     };
     // The 24th bit, leading 1 for the mantissa.
-    constexpr std::uint32_t LEADING_ONE = UINT32_C(0x800000);
     // Step 1: Extract pieces from the floats.
     std::uint32_t sSign = mValue & EXPONENT_BITS_LOC;
     std::uint32_t sExponent = mValue & EXPONENT_BITS_LOC;
@@ -56,7 +55,7 @@ Sink32 Sink32::operator+(std::uint32_t addend)
     // TODO to determine final sign: whatever the sign of the bigger number is.
 
     // Step 8: Compose result.
-    return Sink32(sSign | (sSign & EXPONENT_BITS) |
-                  (totalMantissa & EXPONENT_BITS_LOC));
+    return CreateLiteral(sSign | (sSign & EXPONENT_BITS) |
+                         (totalMantissa & EXPONENT_BITS_LOC));
 }
 

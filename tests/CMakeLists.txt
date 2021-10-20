@@ -41,10 +41,3 @@ target_compile_features(sink_test PRIVATE c_std_99)
 add_custom_target(check COMMAND sink_test
   DEPENDS sink_test)
 
-if(CMAKE_BUILD_TYPE STREQUAL "debug")
-target_compile_options(sink_test  PRIVATE
-    $<$<OR:$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:AppleClang>,$<C_COMPILER_ID:GNU>>:
-         -Wall -Wextra -Werror -Wconversion -Wsign-conversion>
-    $<$<C_COMPILER_ID:MSVC>:
-         /W4 /WX>)
-endif()
