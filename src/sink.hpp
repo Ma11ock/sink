@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <algorithm>
+#include <bitset>
 
 class Sink32
 {
@@ -28,10 +29,13 @@ public:
     Sink32(std::uint32_t value) : mValue(0)
     {
         // Value must be in 24 bit range.
-        if(value == 0 || value >= (UINT32_C(1) << (MANTISSA_BITS + 1)))
+        if(value == 0)
+            return;
+        if(value > UINT32_C(0xFFFFFF) * 2)
         {
             // The value is out of range of a float. Return NaN.
             *this = CreateLiteral(NAN_MIN);
+            return;
         }
 
         std::uint32_t shifts = 0;
@@ -46,7 +50,25 @@ public:
     Sink32(std::int32_t value) : mValue(0)
     {
         // Extract the sign value, exponent (and unbias it), and mantissa.
+        if(value == 0)
+            return;
+        if(value < -INT32_C(0xFFFFFF) * 2 || value > INT32_C(0xFFFFFF) * 2)
+        {
+            // The value is out of range of a float. Return NAN.
+            *this = CreateLiteral(NAN_MIN);
+            return;
+        }
         mValue |= (value & SIGN_BIT_LOC);
+
+        std::uint32_t tValue = static_cast<std::uint32_t>(value);
+
+        std::uint32_t shifts = 0;
+        for(; (tValue & LEADING_ONE) == 0; shifts++, tValue <<= 1);
+
+        std::uint32_t exponent = BIAS + MANTISSA_BITS - shifts;
+
+        *this = CreateLiteral((exponent << MANTISSA_BITS) |
+                              (tValue & MANTISSA_BITS_LOC));
     }
 
     Sink32(float value)
@@ -54,17 +76,34 @@ public:
         mValue = *reinterpret_cast<std::uint32_t*>(&value);
     }
 
-    static Sink32 CreateLiteral(std::uint32_t value)
+    static inline Sink32 CreateLiteral(std::uint32_t value)
     {
         Sink32 n;
         n.mValue = value;
         return n;
     }
 
+    static inline std::int32_t twosComp(std::int32_t i)
+    { return -i; } 
+
+    static inline std::uint32_t twosComp(std::uint32_t i)
+    { return ~i + 1; }
+
     ~Sink32() = default;
 
     inline explicit operator std::int32_t() const
     {
+        std::uint32_t sign = mValue & SIGN_BIT_LOC;
+        std::uint32_t exponent = ((mValue & EXPONENT_BITS_LOC)
+                                  >> MANTISSA_BITS) - BIAS;
+        std::uint32_t mantissa = (mValue & MANTISSA_BITS_LOC)
+            | LEADING_ONE;
+        return mantissa >> (MANTISSA_BITS - exponent);
+    }
+
+    inline std::int32_t toInt() const
+    {
+        return static_cast<std::int32_t>(*this);
     }
 
     inline explicit operator float() const
