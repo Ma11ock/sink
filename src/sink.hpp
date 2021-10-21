@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <algorithm>
-#include <bitset>
 
 class Sink32
 {
@@ -20,61 +19,16 @@ public:
     static constexpr std::uint32_t NAN_MAX = EXPONENT_BITS_LOC | MANTISSA_BITS_LOC;
     static constexpr std::uint32_t BIAS = 127;
     static constexpr std::uint32_t LEADING_ONE = UINT32_C(0x800000);
-    
 
     Sink32() : mValue(0)
     {
     }
 
-    Sink32(std::uint32_t value) : mValue(0)
-    {
-        // Value must be in 24 bit range.
-        if(value == 0)
-            return;
-        if(value > UINT32_C(0xFFFFFF) * 2)
-        {
-            // The value is out of range of a float. Return NaN.
-            *this = CreateLiteral(NAN_MIN);
-            return;
-        }
+    Sink32(std::uint32_t value);
 
-        std::uint32_t shifts = 0;
-        for(; (value & LEADING_ONE) == 0; shifts++, value <<= 1);
+    Sink32(std::int32_t value);
 
-        std::uint32_t exponent = BIAS + MANTISSA_BITS - shifts;
-
-        *this = CreateLiteral((exponent << MANTISSA_BITS) |
-                              (value & MANTISSA_BITS_LOC));
-    }
-
-    Sink32(std::int32_t value) : mValue(0)
-    {
-        // Extract the sign value, exponent (and unbias it), and mantissa.
-        if(value == 0)
-            return;
-        if(value < -INT32_C(0xFFFFFF) * 2 || value > INT32_C(0xFFFFFF) * 2)
-        {
-            // The value is out of range of a float. Return NAN.
-            *this = CreateLiteral(NAN_MIN);
-            return;
-        }
-        mValue |= (value & SIGN_BIT_LOC);
-
-        std::uint32_t tValue = static_cast<std::uint32_t>(value);
-
-        std::uint32_t shifts = 0;
-        for(; (tValue & LEADING_ONE) == 0; shifts++, tValue <<= 1);
-
-        std::uint32_t exponent = BIAS + MANTISSA_BITS - shifts;
-
-        *this = CreateLiteral((exponent << MANTISSA_BITS) |
-                              (tValue & MANTISSA_BITS_LOC));
-    }
-
-    Sink32(float value)
-    {
-        mValue = *reinterpret_cast<std::uint32_t*>(&value);
-    }
+    Sink32(float value);
 
     static inline Sink32 CreateLiteral(std::uint32_t value)
     {
@@ -82,12 +36,6 @@ public:
         n.mValue = value;
         return n;
     }
-
-    static inline std::int32_t twosComp(std::int32_t i)
-    { return -i; } 
-
-    static inline std::uint32_t twosComp(std::uint32_t i)
-    { return ~i + 1; }
 
     ~Sink32() = default;
 

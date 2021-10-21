@@ -1,5 +1,61 @@
 #include "sink.hpp"
 
+static inline std::int32_t twosComp(std::int32_t i)
+{ return -i; } 
+
+static inline std::uint32_t twosComp(std::uint32_t i)
+{ return ~i + 1; }
+
+Sink32::Sink32(std::uint32_t value) : mValue(0)
+{
+    // Value must be in 24 bit range.
+    if(value == 0)
+        return;
+    if(value > UINT32_C(0xFFFFFF) * 2)
+    {
+        // The value is out of range of a float. Return NaN.
+        *this = CreateLiteral(NAN_MIN);
+        return;
+    }
+
+    std::uint32_t shifts = 0;
+    for(; (value & LEADING_ONE) == 0; shifts++, value <<= 1);
+
+    std::uint32_t exponent = BIAS + MANTISSA_BITS - shifts;
+
+    *this = CreateLiteral((exponent << MANTISSA_BITS) |
+                          (value & MANTISSA_BITS_LOC));
+}
+
+Sink32::Sink32(std::int32_t value) : mValue(0)
+{
+    // Extract the sign value, exponent (and unbias it), and mantissa.
+    if(value == 0)
+        return;
+    if(value < -INT32_C(0xFFFFFF) * 2 || value > INT32_C(0xFFFFFF) * 2)
+    {
+        // The value is out of range of a float. Return NAN.
+        *this = CreateLiteral(NAN_MIN);
+        return;
+    }
+    mValue |= (value & SIGN_BIT_LOC);
+
+    std::uint32_t tValue = static_cast<std::uint32_t>(value);
+
+    std::uint32_t shifts = 0;
+    for(; (tValue & LEADING_ONE) == 0; shifts++, tValue <<= 1);
+
+    std::uint32_t exponent = BIAS + MANTISSA_BITS - shifts;
+
+    *this = CreateLiteral((exponent << MANTISSA_BITS) |
+                          (tValue & MANTISSA_BITS_LOC));
+}
+
+Sink32::Sink32(float value)
+{
+    mValue = *reinterpret_cast<std::uint32_t*>(&value);
+}
+
 Sink32 Sink32::operator+(std::uint32_t addend)
 {
     auto incExponent = [=](std::uint32_t &exp)
@@ -32,14 +88,14 @@ Sink32 Sink32::operator+(std::uint32_t addend)
     sExponent = bExponent;
     // Step 4: If an operand is negative, 2's complement it.
     if(sSign)
-        sMantissa = ~sMantissa + 1;
+        sMantissa = twosComp(sMantissa);
     if(bSign)
-        bMantissa = ~bMantissa + 1;
+        bMantissa = twosComp(bMantissa);
     // Step 5: Add mantissas:
     std::uint32_t totalMantissa = sMantissa + bMantissa;
     // Step 6: If the total mantissa is negative, 2's complement again.
     if(totalMantissa & SIGN_BIT_LOC)
-        totalMantissa = ~sMantissa + 1;
+        totalMantissa = twosComp(sMantissa);
     // Step 7: Normalize the mantissa.
     // If the 24th bit is 1, right sift by 1.
     if(totalMantissa & LEADING_ONE)
