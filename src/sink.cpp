@@ -1,5 +1,10 @@
 #include "sink.hpp"
 
+#include <limits>
+#include <algorithm>
+#include <float>
+#include <cstring>
+
 static inline std::int32_t twosComp(std::int32_t i)
 { return -i; } 
 
@@ -53,7 +58,10 @@ Sink32::Sink32(std::int32_t value) : mValue(0)
 
 Sink32::Sink32(float value)
 {
-    mValue = *reinterpret_cast<std::uint32_t*>(&value);
+    if constexpr(std::numeric_limits<float>::is_iec559)
+        mValue = *reinterpret_cast<std::uint32_t*>(&value);
+    else
+        mValue = NAN_MIN;
 }
 
 Sink32 Sink32::operator+(std::uint32_t addend)
@@ -113,5 +121,20 @@ Sink32 Sink32::operator+(std::uint32_t addend)
     // Step 8: Compose result.
     return CreateLiteral(sSign | (sSign & EXPONENT_BITS) |
                          (totalMantissa & EXPONENT_BITS_LOC));
+}
+
+Sink32 Sink32::operator-(std::uint32_t minuend)
+{
+    return *this + twosComp(minuend);
+}
+
+explicit Sink32::operator float() const
+{
+    std::uint32_t valToCopy = mValue;
+    if constexpr(!std::numeric_limits<float>::is_iec559)
+        valToCopy = NAN_MIN;
+    float result;
+    std::memcpy(&result, &NAN_MIN, sizeof(float));
+    return result;
 }
 
