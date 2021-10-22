@@ -64,21 +64,24 @@ Sink32::Sink32(float value)
         mValue = NAN_MIN;
 }
 
-Sink32 Sink32::operator+(std::uint32_t addend)
+Sink32 Sink32::operator+(Sink32 other)
 {
+    std::uint32_t addend = other.mValue;
     auto incExponent = [=](std::uint32_t &exp)
     {
         exp = ((exp >> MANTISSA_BITS) + 1) << MANTISSA_BITS;
     };
     // The 24th bit, leading 1 for the mantissa.
     // Step 1: Extract pieces from the floats.
+    // Organize the parts of each Sink by which exponent is greater.
+    // Step 2: For the mantissa, prepend leading 1.
     std::uint32_t sSign = mValue & EXPONENT_BITS_LOC;
     std::uint32_t sExponent = mValue & EXPONENT_BITS_LOC;
-    std::uint32_t sMantissa = mValue & MANTISSA_BITS_LOC;
+    std::uint32_t sMantissa = (mValue & MANTISSA_BITS_LOC) | LEADING_ONE;
 
     std::uint32_t bSign = addend & EXPONENT_BITS_LOC;
     std::uint32_t bExponent = addend & EXPONENT_BITS_LOC;
-    std::uint32_t bMantissa = addend & MANTISSA_BITS_LOC;
+    std::uint32_t bMantissa = (addend & MANTISSA_BITS_LOC) | LEADING_ONE;
 
     if(sExponent > bExponent)
     {
@@ -86,9 +89,6 @@ Sink32 Sink32::operator+(std::uint32_t addend)
         std::swap(sSign, bSign);
         std::swap(sMantissa, bMantissa);
     }
-    // Step 2: Prepend leading 1.
-    sMantissa |= LEADING_ONE;
-    bMantissa |= LEADING_ONE;
 
     // Step 3: Compare Exponents, right shift the smaller exp's
     // mantissa by the difference.
@@ -101,9 +101,12 @@ Sink32 Sink32::operator+(std::uint32_t addend)
         bMantissa = twosComp(bMantissa);
     // Step 5: Add mantissas:
     std::uint32_t totalMantissa = sMantissa + bMantissa;
-    // Step 6: If the total mantissa is negative, 2's complement again.
+    // Step 6: If the total mantissa is negative, 2's complement it.
     if(totalMantissa & SIGN_BIT_LOC)
+    {
         totalMantissa = twosComp(sMantissa);
+        sSign = SIGN_BIT_LOC;
+    }
     // Step 7: Normalize the mantissa.
     // If the 24th bit is 1, right sift by 1.
     if(totalMantissa & LEADING_ONE)
@@ -116,16 +119,15 @@ Sink32 Sink32::operator+(std::uint32_t addend)
         for(; totalMantissa & LEADING_ONE; totalMantissa <<= 1,
                 incExponent(sExponent));
     // If the 23rd bit is 1, do nothing
-    // TODO to determine final sign: whatever the sign of the bigger number is.
 
     // Step 8: Compose result.
     return CreateLiteral(sSign | (sSign & EXPONENT_BITS) |
                          (totalMantissa & EXPONENT_BITS_LOC));
 }
 
-Sink32 Sink32::operator-(std::uint32_t minuend)
+Sink32 Sink32::operator-(Sink32 minuend)
 {
-    return *this + twosComp(minuend);
+    return *this + -minuend;
 }
 
 explicit Sink32::operator float() const

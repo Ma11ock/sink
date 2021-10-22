@@ -29,6 +29,8 @@ public:
     static constexpr std::uint32_t NAN_MAX = EXPONENT_BITS_LOC | MANTISSA_BITS_LOC;
     // The exponent bias.
     static constexpr std::uint32_t BIAS = 127;
+    // The exponent bias for subnormal numbers.
+    static constexpr std::uint32_t SUB_BIAS = 126;
     // The location of the mantissa's implicit leading one.
     static constexpr std::uint32_t LEADING_ONE = UINT32_C(0x800000);
 
@@ -106,11 +108,11 @@ public:
         return CreateLiteral(mValue ^ SIGN_BIT_LOC);
     }
 
-    // Add a sink to an unisigned int.
-    Sink32 operator+(std::uint32_t addend);
+    // Add two sinks.
+    Sink32 operator+(Sink32 addend);
 
     // Subtract two sinks.
-    inline Sink32 operator-(std::uint32_t minuend);
+    inline Sink32 operator-(Sink32 minuend);
 
     // Check if sink is NaN.
     inline bool isNaN() const
@@ -129,6 +131,18 @@ public:
     inline bool isNegative() const
     {
         return mValue & SIGN_BIT_LOC;
+    }
+
+    // Check if the number is subnormnal.
+    inline bool isSubNormal() const
+    {
+        return mValue & MANTISSA_BITS_LOC == 0;
+    }
+
+    // Check if the number is normal.
+    inline bool isNormal() const
+    {
+        return mValue & MANTISSA_BITS_LOC != 0;
     }
 
     // Get the bits/memory of this Sink.
