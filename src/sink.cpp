@@ -70,22 +70,22 @@ Sink32 Sink32::operator+(Sink32 other)
     auto constructSink = [=](std::uint32_t sign, std::int32_t exp,
                              std::uint32_t mantissa) -> std::uint32_t
     {
-        if(exp != -126)
-            exp++;
         return sign |
-            ((static_cast<std::uint32_t>(exp + SUB_BIAS)
+            ((static_cast<std::uint32_t>(exp + (exp == -SUB_BIAS ? SUB_BIAS : BIAS))
               << MANTISSA_BITS) & EXPONENT_BITS_LOC)
-            | MANTISSA_BITS_LOC & MANTISSA_BITS_LOC;
+            | (mantissa & MANTISSA_BITS_LOC);
     };
     // The 24th bit, leading 1 for the mantissa.
     // Step 1: Extract pieces from the floats.
     // Organize the parts of each Sink by which exponent is greater.
     // Step 2: For the mantissa, prepend leading 1.
     std::uint32_t sSign = mValue & SIGN_BIT_LOC;
+    // Mathematical exponent.
     std::int32_t sExponent = frexp();
     std::uint32_t sMantissa = (mValue & MANTISSA_BITS_LOC) | LEADING_ONE;
 
     std::uint32_t bSign = addend & SIGN_BIT_LOC;
+    // Mathematical exponent.
     std::int32_t bExponent = other.frexp();
     std::uint32_t bMantissa = (addend & MANTISSA_BITS_LOC) | LEADING_ONE;
 
@@ -100,7 +100,7 @@ Sink32 Sink32::operator+(Sink32 other)
     // addition operation is not possible because the right shift
     // will 0 out the mantissa.
     if(bExponent - MANTISSA_BITS + 1 > sExponent)
-        constructSink(bSign, bExponent, bMantissa);
+        return CreateLiteral(constructSink(bSign, bExponent, bMantissa));
 
     // Step 3: Compare Exponents, right shift the smaller exp's
     // mantissa by the difference.
