@@ -41,16 +41,16 @@ Sink32::Sink32(std::int32_t value) : mValue(0)
         *this = CreateLiteral(NAN_MIN);
         return;
     }
-    mValue |= (value & SIGN_BIT_LOC);
-
     std::uint32_t tValue = static_cast<std::uint32_t>(value);
 
     std::uint32_t shifts = 0;
-    for(; (tValue & LEADING_ONE) == 0; shifts++, tValue <<= 1);
+    for(; (tValue & LEADING_ONE) == 0 && shifts < MANTISSA_BITS;
+        shifts++, tValue <<= 1);
 
     std::uint32_t exponent = BIAS + MANTISSA_BITS - shifts;
 
-    *this = CreateLiteral((exponent << MANTISSA_BITS) |
+    *this = CreateLiteral((mValue & SIGN_BIT_LOC) |
+                          (exponent << MANTISSA_BITS) |
                           (tValue & MANTISSA_BITS_LOC));
 }
 
@@ -65,6 +65,18 @@ Sink32::Sink32(float value)
 Sink32 Sink32::operator+(Sink32 other)
 {
     std::uint32_t addend = other.mValue;
+    // Construct a new sink a sign bit (in its proper place (left-most bit)),
+    // an unbiased mathematical exponent, and a mathematical mantissa.
+    auto constructSink = [=](std::uint32_t sign, std::int32_t exp,
+                             std::uint32_t mantissa) -> std::uint32_t
+    {
+        if(exp != -126)
+            exp++;
+        return sign |
+            ((static_cast<std::uint32_t>(exp + SUB_BIAS)
+              << MANTISSA_BITS) & EXPONENT_BITS_LOC)
+            | MANTISSA_BITS_LOC & MANTISSA_BITS_LOC;
+    };
     // The 24th bit, leading 1 for the mantissa.
     // Step 1: Extract pieces from the floats.
     // Organize the parts of each Sink by which exponent is greater.
@@ -84,42 +96,46 @@ Sink32 Sink32::operator+(Sink32 other)
         std::swap(sMantissa, bMantissa);
     }
 
+    // If the difference in exponent is > MANTISSA_BITS + 1 then the
+    // addition operation is not possible because the right shift
+    // will 0 out the mantissa.
+    if(bExponent - MANTISSA_BITS + 1 > sExponent)
+        constructSink(bSign, bExponent, bMantissa);
+
     // Step 3: Compare Exponents, right shift the smaller exp's
     // mantissa by the difference.
     sMantissa >>= bExponent - sExponent;
     sExponent = bExponent;
     // Step 4: If an operand is negative, 2's complement it.
-    constexpr std::uint32_t twosCompShiftAmount = MANTISSA_BITS + SIGN_BITS;
     if(sSign)
         sMantissa = twosComp(sMantissa) & MANTISSA_BITS_LOC;
     if(bSign)
         bMantissa = twosComp(bMantissa) & MANTISSA_BITS_LOC;
     // Step 5: Add mantissas (24bit addition):
-    std::uint32_t totalMantissa = (sMantissa + bMantissa)
+    std::uint32_t finalMantissa = (sMantissa + bMantissa)
         & MANTISSA_BITS_LOC;
+    // The final exponent is the bigger exponent.
+    std::uint32_t finalExponent = bExponent;
+    // The final sign is the bigger sign.
+    std::uint32_t finalSign = bSign;
     // Step 6: If the total mantissa is negative, 2's complement it.
-    if(bSign)
-        totalMantissa = twosComp(sMantissa) & MANTISSA_BITS_LOC;
-    std::uint32_t finalExponent = (bExponent + (bExponent == -SUB_BIAS) ?
-                                   SUB_BIAS : BIAS) << MANTISSA_BITS;
+    if(finalSign)
+        finalMantissa = twosComp(sMantissa) & MANTISSA_BITS_LOC;
     // Step 7: Normalize the mantissa.
-    // If the 24th bit is 1, right sift by 1.
-    if(totalMantissa & LEADING_ONE )
+    // If the 24th bit is 1 (overflow to implicit 1), right sift by 1.
+    if(finalMantissa & LEADING_ONE)
     {
-        totalMantissa >>= 1;
-        finalExponent++;
+        finalMantissa >>= 1;
+        finalExponent--;
     }
     // The leftmost 1 bit is after the 23rd bit, requiring a left shit.
-    else if(totalMantissa & UINT32_C(0x3FFFFF))
-        for(; totalMantissa & LEADING_ONE; totalMantissa <<= 1,
+    else if(finalMantissa & UINT32_C(0x3FFFFF))
+        for(; finalMantissa & LEADING_ONE; finalMantissa <<= 1,
                 finalExponent++);
     // If the 23rd bit is 1, do nothing
 
     // Step 8: Compose result.
-    return CreateLiteral(bSign | ((finalExponent +
-                                   (finalExponent == SUB_BIAS ? SUB_BIAS : BIAS))
-                                  & EXPONENT_BITS) |
-                         (totalMantissa & MANTISSA_BITS_LOC));
+    return CreateLiteral(constructSink(finalSign, finalExponent, finalMantissa));
 }
 
 Sink32 Sink32::operator-(Sink32 minuend)
@@ -140,7 +156,7 @@ Sink32::operator float() const
 // infinity return the smallest 32 bit integer (INT_MIN).
 std::int32_t Sink32::frexp() const
 {
-    auto exp = static_cast<std::int32_t>((mValue & MANTISSA_BITS_LOC)
+    auto exp = static_cast<std::int32_t>((mValue & EXPONENT_BITS_LOC)
                                          >> MANTISSA_BITS);
     if(isNormal())
         return exp - BIAS;

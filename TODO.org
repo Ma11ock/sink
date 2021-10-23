@@ -1,0 +1,4 @@
+* Fix Addition
+* Multiplication
+* Signaling nan
+* Exceptions/signals
