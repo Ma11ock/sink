@@ -52,6 +52,11 @@ TEST(castTest, three)
     ASSERT_EQ(3, static_cast<std::int32_t>(Sink32(3)));
 }
 
+TEST(add, onep0)
+{
+    ASSERT_EQ(1.f, static_cast<float>(Sink32(1) + Sink32(0)));
+}
+
 int main(int argc, char *argv[])
 {
     std::cout << "The size of a sink32 is " << sizeof(Sink32) << '\n';

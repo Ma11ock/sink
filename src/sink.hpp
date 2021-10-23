@@ -1,4 +1,4 @@
-#ifndef SINK_HP2
+#ifndef SINK_HPP
 #define SINK_HPP
 
 #include <cstdint>
@@ -28,9 +28,9 @@ public:
     // Maximum (if converted to a uint) NAN value.
     static constexpr std::uint32_t NAN_MAX = EXPONENT_BITS_LOC | MANTISSA_BITS_LOC;
     // The exponent bias.
-    static constexpr std::uint32_t BIAS = 127;
+    static constexpr std::int32_t BIAS = 127;
     // The exponent bias for subnormal numbers.
-    static constexpr std::uint32_t SUB_BIAS = 126;
+    static constexpr std::int32_t SUB_BIAS = 126;
     // The location of the mantissa's implicit leading one.
     static constexpr std::uint32_t LEADING_ONE = UINT32_C(0x800000);
 
@@ -136,13 +136,16 @@ public:
     // Check if the number is subnormnal.
     inline bool isSubNormal() const
     {
-        return mValue & MANTISSA_BITS_LOC == 0;
+        return (mValue & EXPONENT_BITS_LOC) == 0;
     }
 
     // Check if the number is normal.
     inline bool isNormal() const
     {
-        return mValue & MANTISSA_BITS_LOC != 0;
+        std::uint32_t exp = (mValue & EXPONENT_BITS_LOC) >> MANTISSA_BITS;
+        return
+            (exp != 0) &&
+            (exp != 0xFF);
     }
 
     // Get the bits/memory of this Sink.
@@ -150,6 +153,10 @@ public:
     {
         return mValue;
     }
+
+    // Get the mathematical exponent. If the Sink is NaN or
+    // infinity return the smallest 32 bit integer (INT_MIN).
+    std::int32_t frexp() const;
     
 private:
     // 4 byte value that makes up a sink.
