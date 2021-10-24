@@ -133,13 +133,13 @@ public:
         return mValue & SIGN_BIT_LOC;
     }
 
-    // Check if the number is subnormnal.
+    // Check if the sink is subnormnal.
     inline bool isSubNormal() const
     {
         return (mValue & EXPONENT_BITS_LOC) == 0;
     }
 
-    // Check if the number is normal.
+    // Check if the sink is normal.
     inline bool isNormal() const
     {
         std::uint32_t exp = (mValue & EXPONENT_BITS_LOC) >> MANTISSA_BITS;

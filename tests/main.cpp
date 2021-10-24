@@ -57,6 +57,62 @@ TEST(add, onep0)
     ASSERT_EQ(1.f, static_cast<float>(Sink32(1) + Sink32(0)));
 }
 
+TEST(add, onepone)
+{
+    ASSERT_EQ(2.f, static_cast<float>(Sink32(1) + Sink32(1)));
+}
+
+TEST(add, oneptwo)
+{
+    ASSERT_EQ(3.f, static_cast<float>(Sink32(1) + Sink32(2)));
+}
+
+TEST(add, hundredphundredtwentyfive)
+{
+    ASSERT_EQ(125.f, static_cast<float>(Sink32(100) + Sink32(25)));
+}
+
+// Mathematical exp of a subnormal number should always be -126
+TEST(frexpDenormal, zero)
+{
+    ASSERT_EQ(-126, Sink32(0).frexp());
+}
+
+// Frexp tests for normals.
+
+TEST(frexp, one)
+{
+    ASSERT_EQ(0, Sink32(1).frexp());
+}
+
+TEST(frexp, two)
+{
+    ASSERT_EQ(1, Sink32(2).frexp());
+}
+
+TEST(frexp, three)
+{
+    ASSERT_EQ(1, Sink32(3).frexp());
+}
+
+TEST(frexp, four)
+{
+    ASSERT_EQ(2, Sink32(4).frexp());
+}
+
+TEST(frexp, hundred)
+{
+    ASSERT_EQ(6, Sink32(100).frexp());
+}
+
+
+TEST(frexp, fIntMax)
+{
+    auto s = Sink32(16777215);
+    ASSERT_EQ(23, s.frexp());
+}
+
+
 int main(int argc, char *argv[])
 {
     std::cout << "The size of a sink32 is " << sizeof(Sink32) << '\n';
