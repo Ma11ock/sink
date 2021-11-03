@@ -133,8 +133,8 @@ Sink32 Sink32::operator+(Sink32 other)
         finalMantissa >>= 1;
         finalExponent++;
     }
-    // The leftmost 1 bit is after the 23rd bit, requiring a left shit.
-    else if(finalMantissa & UINT32_C(0x3FFFFF))
+    // The leftmost 1 bit is left the 24th bit, requiring a left shit.
+    else if(finalMantissa & MANTISSA_BITS_LOC)
         for(; !(finalMantissa & LEADING_ONE); finalMantissa <<= 1,
                 finalExponent--);
     else if(finalMantissa == 0)
