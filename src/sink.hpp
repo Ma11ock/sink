@@ -32,7 +32,7 @@ public:
     // The exponent bias for subnormal numbers.
     static constexpr std::int32_t SUB_BIAS = 126;
     // The location of the mantissa's implicit leading one.
-    static constexpr std::uint32_t LEADING_ONE = UINT32_C(0x800000);
+    static constexpr std::uint32_t MANTISSA_LEADING_ONE = UINT32_C(0x800000);
 
     // Default constructor. Set to 0.
     Sink32() : mValue(0)
@@ -81,7 +81,7 @@ public:
         std::uint32_t exponent = ((mValue & EXPONENT_BITS_LOC)
                                   >> MANTISSA_BITS) - BIAS;
         std::uint32_t mantissa = (mValue & MANTISSA_BITS_LOC)
-            | LEADING_ONE;
+            | MANTISSA_LEADING_ONE;
         return (mantissa >> (MANTISSA_BITS - exponent)) | sign;
     }
 

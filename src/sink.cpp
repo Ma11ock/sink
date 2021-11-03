@@ -22,7 +22,7 @@ Sink32::Sink32(std::uint32_t value) : mValue(0)
     }
 
     std::uint32_t shifts = 0;
-    for(; (value & LEADING_ONE) == 0; shifts++, value <<= 1);
+    for(; (value & MANTISSA_LEADING_ONE) == 0; shifts++, value <<= 1);
 
     std::uint32_t exponent = BIAS + MANTISSA_BITS - shifts;
 
@@ -44,7 +44,7 @@ Sink32::Sink32(std::int32_t value) : mValue(0)
     std::uint32_t tValue = static_cast<std::uint32_t>(value);
 
     std::uint32_t shifts = 0;
-    for(; (tValue & LEADING_ONE) == 0 && shifts < MANTISSA_BITS;
+    for(; (tValue & MANTISSA_LEADING_ONE) == 0 && shifts < MANTISSA_BITS;
         shifts++, tValue <<= 1);
 
     std::uint32_t exponent = BIAS + MANTISSA_BITS - shifts;
@@ -85,14 +85,14 @@ Sink32 Sink32::operator+(Sink32 other)
     std::int32_t sExponent = frexp();
     std::uint32_t sMantissa = mValue & MANTISSA_BITS_LOC;
     if(isNormal())
-        sMantissa |= LEADING_ONE;
+        sMantissa |= MANTISSA_LEADING_ONE;
 
     std::uint32_t bSign = addend & SIGN_BIT_LOC;
     // Mathematical exponent.
     std::int32_t bExponent = other.frexp();
     std::uint32_t bMantissa = addend & MANTISSA_BITS_LOC;
     if(other.isNormal())
-        bMantissa |= LEADING_ONE;
+        bMantissa |= MANTISSA_LEADING_ONE;
 
     if(sExponent > bExponent)
     {
@@ -135,7 +135,7 @@ Sink32 Sink32::operator+(Sink32 other)
     }
     // The leftmost 1 bit is left the 24th bit, requiring a left shit.
     else if(finalMantissa & MANTISSA_BITS_LOC)
-        for(; !(finalMantissa & LEADING_ONE); finalMantissa <<= 1,
+        for(; !(finalMantissa & MANTISSA_LEADING_ONE); finalMantissa <<= 1,
                 finalExponent--);
     else if(finalMantissa == 0)
         finalExponent = static_cast<std::uint32_t>(-SUB_BIAS);
