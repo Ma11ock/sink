@@ -64,6 +64,7 @@ Sink32::Sink32(float value)
 
 Sink32 Sink32::operator+(Sink32 other)
 {
+    constexpr std::uint32_t FULL_MANTISSA_BITS = UINT32_C(0x1FFFFFF);
     std::uint32_t addend = other.mValue;
     // Construct a new sink a sign bit (in its proper place (left-most bit)),
     // an unbiased mathematical exponent, and a mathematical mantissa.
@@ -123,7 +124,7 @@ Sink32 Sink32::operator+(Sink32 other)
     std::uint32_t finalSign = bSign;
     // Step 6: If the total mantissa is negative, 2's complement it.
     if(finalSign)
-        finalMantissa = twosComp(sMantissa);
+        finalMantissa = twosComp(finalMantissa);
     // Step 7: Normalize the mantissa.
     // If the 25th or 24th bits are 1 we must right shift until they are 0.
     constexpr std::uint32_t MANTISSA_OVERFLOW_BITS = UINT32_C(0x1000000);
@@ -136,10 +137,14 @@ Sink32 Sink32::operator+(Sink32 other)
     else if(finalMantissa & UINT32_C(0x3FFFFF))
         for(; !(finalMantissa & LEADING_ONE); finalMantissa <<= 1,
                 finalExponent--);
+    else if(finalMantissa == 0)
+        finalExponent = static_cast<std::uint32_t>(-SUB_BIAS);
     // If the 23rd bit is 1, do nothing
 
     // Step 8: Compose result.
-    return CreateLiteral(constructSink(finalSign, finalExponent, finalMantissa));
+    return CreateLiteral(constructSink(finalSign,
+                                       static_cast<std::int32_t>(finalExponent),
+                                       finalMantissa));
 }
 
 Sink32 Sink32::operator-(Sink32 minuend)

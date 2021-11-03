@@ -112,7 +112,7 @@ public:
     Sink32 operator+(Sink32 addend);
 
     // Subtract two sinks.
-    inline Sink32 operator-(Sink32 minuend);
+    Sink32 operator-(Sink32 minuend);
 
     // Check if sink is NaN.
     inline bool isNaN() const
