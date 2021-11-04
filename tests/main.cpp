@@ -162,6 +162,12 @@ TEST(mult, multSignTest)
     ASSERT_EQ(-2.f, static_cast<float>(i));
 }
 
+
+TEST(div, onedivone)
+{
+    ASSERT_EQ(1.f, static_cast<float>(Sink32(1) / Sink32(1)));
+}
+
 int main(int argc, char *argv[])
 {
     std::cout << "The size of a sink32 is " << sizeof(Sink32) << '\n';

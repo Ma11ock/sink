@@ -117,6 +117,9 @@ public:
     // Multiply two sinks.
     Sink32 operator*(Sink32 multiplier) const;
 
+    // Divide two sinks.
+    Sink32 operator/(Sink32 divisor) const;
+
     // Check if sink is NaN.
     inline bool isNaN() const
     {

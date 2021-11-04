@@ -193,6 +193,36 @@ Sink32 Sink32::operator*(Sink32 multiplier) const
                                        finalMantissa));
 }
 
+Sink32 Sink32::operator/(Sink32 divisor) const
+{
+    if(divisor.mValue == 0)
+        return CreateLiteral(NAN_MIN);
+    // Dividend values.
+    std::uint32_t dendSign = mValue & SIGN_BIT_LOC;
+    std::int32_t dendExponent = frexp();
+    std::uint64_t dendMantissa = mValue & MANTISSA_BITS_LOC;
+    if(isNormal())
+        dendMantissa |= MANTISSA_LEADING_ONE;
+    // Extend dividend mantissa to 48 bits.
+    dendMantissa <<= MANTISSA_BITS;
+
+    // Divisor values.
+    std::uint32_t visorSign = divisor.mValue & SIGN_BIT_LOC;
+    std::int32_t visorExponent = frexp();
+    std::uint64_t visorMantissa = divisor.mValue & MANTISSA_BITS_LOC;
+    if(divisor.isNormal())
+        visorMantissa |= MANTISSA_LEADING_ONE;
+
+    std::uint32_t finalSign = (dendSign ^ visorSign) ? SIGN_BIT_LOC : 0;
+    std::int32_t finalExponent = visorExponent - dendExponent; 
+    std::uint32_t finalMantissa = dendMantissa / visorMantissa;
+    normalizeResult(reinterpret_cast<std::uint32_t&>(finalExponent),
+                    finalMantissa);
+
+    return CreateLiteral(constructSink(finalSign, finalExponent,
+                                      finalMantissa));
+}
+
 Sink32::operator float() const
 {
     std::uint32_t valToCopy = mValue;
