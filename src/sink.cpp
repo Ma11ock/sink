@@ -9,6 +9,41 @@ static inline std::int32_t twosComp(std::int32_t i)
 static inline std::uint32_t twosComp(std::uint32_t i)
 { return ~i + 1; }
 
+// Construct a new sink a sign bit (in its proper place (left-most bit)),
+// an unbiased mathematical exponent, and a mathematical mantissa.
+inline std::uint32_t constructSink(std::uint32_t sign, std::int32_t exp,
+                                   std::uint32_t mantissa) 
+{
+    return (sign & Sink32::SIGN_BIT_LOC) |
+        ((static_cast<std::uint32_t>(exp + (exp == -Sink32::SUB_BIAS ?
+                                            Sink32::SUB_BIAS : Sink32::BIAS))
+          << Sink32::MANTISSA_BITS) & Sink32::EXPONENT_BITS_LOC)
+        | (mantissa & Sink32::MANTISSA_BITS_LOC);
+}
+
+// Normalize a float. 
+// Exponent should not be normalized.
+inline void normalizeResult(std::uint32_t &exponent, std::uint32_t &mantissa)
+{
+    constexpr std::uint32_t MANTISSA_OVERFLOW_BITS = UINT32_C(0x1000000);
+    if(mantissa & MANTISSA_OVERFLOW_BITS)
+    {
+        mantissa >>= 1;
+        exponent++;
+    }
+    // The leftmost 1 bit is left the 24th bit, requiring a left shift.
+    if((mantissa & Sink32::MANTISSA_BITS_LOC) &&
+       !(mantissa & Sink32::MANTISSA_LEADING_ONE))
+        do
+        {
+            mantissa <<= 1;
+            exponent--;
+        } while(!(mantissa & Sink32::MANTISSA_LEADING_ONE));
+    else if(mantissa == 0)
+        exponent = static_cast<std::uint32_t>(-Sink32::SUB_BIAS);
+    // If the 23rd bit is 1, do nothing
+}
+
 Sink32::Sink32(std::uint32_t value) : mValue(0)
 {
     // Value must be in 24 bit range.
@@ -62,20 +97,10 @@ Sink32::Sink32(float value)
         mValue = NAN_MIN;
 }
 
-Sink32 Sink32::operator+(Sink32 other)
+Sink32 Sink32::operator+(Sink32 other) const
 {
     constexpr std::uint32_t FULL_MANTISSA_BITS = UINT32_C(0x1FFFFFF);
     std::uint32_t addend = other.mValue;
-    // Construct a new sink a sign bit (in its proper place (left-most bit)),
-    // an unbiased mathematical exponent, and a mathematical mantissa.
-    auto constructSink = [=](std::uint32_t sign, std::int32_t exp,
-                             std::uint32_t mantissa) -> std::uint32_t
-    {
-        return sign |
-            ((static_cast<std::uint32_t>(exp + (exp == -SUB_BIAS ? SUB_BIAS : BIAS))
-              << MANTISSA_BITS) & EXPONENT_BITS_LOC)
-            | (mantissa & MANTISSA_BITS_LOC);
-    };
     // The 24th bit, leading 1 for the mantissa.
     // Step 1: Extract pieces from the floats.
     // Organize the parts of each Sink by which exponent is greater.
@@ -119,7 +144,7 @@ Sink32 Sink32::operator+(Sink32 other)
     // Step 5: Add mantissas (24bit addition):
     std::uint32_t finalMantissa = sMantissa + bMantissa;
     // The final exponent is the bigger exponent.
-    std::uint32_t finalExponent = bExponent;
+    std::int32_t finalExponent = bExponent;
     // The final sign is the bigger sign.
     std::uint32_t finalSign = bSign;
     // Step 6: If the total mantissa is negative, 2's complement it.
@@ -127,29 +152,45 @@ Sink32 Sink32::operator+(Sink32 other)
         finalMantissa = twosComp(finalMantissa);
     // Step 7: Normalize the mantissa.
     // If the 25th or 24th bits are 1 we must right shift until they are 0.
-    constexpr std::uint32_t MANTISSA_OVERFLOW_BITS = UINT32_C(0x1000000);
-    if(finalMantissa & MANTISSA_OVERFLOW_BITS)
-    {
-        finalMantissa >>= 1;
-        finalExponent++;
-    }
-    // The leftmost 1 bit is left the 24th bit, requiring a left shit.
-    else if(finalMantissa & MANTISSA_BITS_LOC)
-        for(; !(finalMantissa & MANTISSA_LEADING_ONE); finalMantissa <<= 1,
-                finalExponent--);
-    else if(finalMantissa == 0)
-        finalExponent = static_cast<std::uint32_t>(-SUB_BIAS);
-    // If the 23rd bit is 1, do nothing
-
+    normalizeResult(reinterpret_cast<std::uint32_t&>(finalExponent),
+                    finalMantissa);
     // Step 8: Compose result.
-    return CreateLiteral(constructSink(finalSign,
-                                       static_cast<std::int32_t>(finalExponent),
+    return CreateLiteral(constructSink(finalSign, finalExponent,
                                        finalMantissa));
 }
 
-Sink32 Sink32::operator-(Sink32 minuend)
+Sink32 Sink32::operator-(Sink32 minuend) const
 {
     return *this + -minuend;
+}
+
+Sink32 Sink32::operator*(Sink32 multiplier) const
+{
+    // Multiplier values.
+    std::uint32_t plierSign = multiplier.mValue & SIGN_BIT_LOC;
+    std::int32_t plierExponent = multiplier.frexp();
+    std::uint32_t plierMantissa = multiplier.mValue & MANTISSA_BITS_LOC;
+    if(multiplier.isNormal())
+        plierMantissa |= MANTISSA_LEADING_ONE;
+    // Multiplicand values.
+    std::uint32_t candSign = mValue & SIGN_BIT_LOC;
+    std::int32_t candExponent = frexp();
+    std::uint32_t candMantissa = mValue & MANTISSA_BITS_LOC;
+    if(isNormal())
+        candMantissa |= MANTISSA_LEADING_ONE;
+
+    std::uint32_t finalSign = (plierSign ^ candSign) ? SIGN_BIT_LOC : 0;
+    std::int32_t finalExponent = plierExponent + candExponent;
+    std::uint32_t finalMantissa = static_cast<std::uint32_t>(
+        (static_cast<std::uint64_t>(plierMantissa) *
+         static_cast<std::uint64_t>(candMantissa))
+        >> MANTISSA_BITS);
+
+    normalizeResult(reinterpret_cast<std::uint32_t&>(finalExponent),
+                    finalMantissa);
+
+    return CreateLiteral(constructSink(finalSign, finalExponent,
+                                       finalMantissa));
 }
 
 Sink32::operator float() const

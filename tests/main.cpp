@@ -132,6 +132,35 @@ TEST(frexp, fIntMax)
     ASSERT_EQ(23, s.frexp());
 }
 
+TEST(mult, onemulone)
+{
+    Sink32 i = Sink32(1) * Sink32(1);
+    ASSERT_EQ(1.f, static_cast<float>(i));
+}
+
+TEST(mult, onemultwo)
+{
+    Sink32 i = Sink32(1) * Sink32(2);
+    ASSERT_EQ(2.f, static_cast<float>(i));
+}
+
+TEST(mult, zeroMultTwo)
+{
+    Sink32 i = Sink32(0) * Sink32(2);
+    ASSERT_EQ(0.f, static_cast<float>(i));
+}
+
+TEST(mult, twoMulTwo)
+{
+    Sink32 i = Sink32(2) * Sink32(2);
+    ASSERT_EQ(4.f, static_cast<float>(i));
+}
+
+TEST(mult, multSignTest)
+{
+    Sink32 i = Sink32(-1) * Sink32(2);
+    ASSERT_EQ(-2.f, static_cast<float>(i));
+}
 
 int main(int argc, char *argv[])
 {

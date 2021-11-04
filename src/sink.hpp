@@ -109,10 +109,13 @@ public:
     }
 
     // Add two sinks.
-    Sink32 operator+(Sink32 addend);
+    Sink32 operator+(Sink32 addend) const;
 
     // Subtract two sinks.
-    Sink32 operator-(Sink32 minuend);
+    Sink32 operator-(Sink32 minuend) const;
+
+    // Multiply two sinks.
+    Sink32 operator*(Sink32 multiplier) const;
 
     // Check if sink is NaN.
     inline bool isNaN() const
