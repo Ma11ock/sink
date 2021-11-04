@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <algorithm>
+#include <cstdlib>
 
 static inline std::int32_t twosComp(std::int32_t i)
 { return -i; } 
@@ -65,7 +66,7 @@ Sink32::Sink32(std::uint32_t value) : mValue(0)
                           (value & MANTISSA_BITS_LOC));
 }
 
-Sink32::Sink32(std::int32_t value) : mValue(0)
+Sink32::Sink32(std::int32_t value) : mValue(static_cast<std::uint32_t>(value))
 {
     // Extract the sign value, exponent (and unbias it), and mantissa.
     if(value == 0)
@@ -76,7 +77,7 @@ Sink32::Sink32(std::int32_t value) : mValue(0)
         *this = CreateLiteral(NAN_MIN);
         return;
     }
-    std::uint32_t tValue = static_cast<std::uint32_t>(value);
+    std::uint32_t tValue = static_cast<std::uint32_t>(std::abs(value));
 
     std::uint32_t shifts = 0;
     for(; (tValue & MANTISSA_LEADING_ONE) == 0 && shifts < MANTISSA_BITS;

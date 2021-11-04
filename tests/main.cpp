@@ -92,6 +92,11 @@ TEST(sub, onemthree)
     ASSERT_EQ(-2.f, static_cast<float>(Sink32(1) - Sink32(3)));
 }
 
+TEST(repr, negOne)
+{
+    ASSERT_EQ(-1.f, static_cast<float>(Sink32(-1)));
+}
+
 // Mathematical exp of a subnormal number should always be -126
 TEST(frexpDenormal, zero)
 {
@@ -158,7 +163,7 @@ TEST(mult, twoMulTwo)
 
 TEST(mult, multSignTest)
 {
-    Sink32 i = Sink32(-1) * Sink32(2);
+    Sink32 i = Sink32(1) * Sink32(-2);
     ASSERT_EQ(-2.f, static_cast<float>(i));
 }
 
