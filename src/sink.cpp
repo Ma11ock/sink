@@ -195,7 +195,7 @@ Sink32 Sink32::operator*(Sink32 multiplier) const
 
 Sink32 Sink32::operator/(Sink32 divisor) const
 {
-    if(divisor.mValue == 0)
+    if(divisor == Sink32(0))
         return CreateLiteral(NAN_MIN);
     // Dividend values.
     std::uint32_t dendSign = mValue & SIGN_BIT_LOC;

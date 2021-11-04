@@ -120,6 +120,14 @@ public:
     // Divide two sinks.
     Sink32 operator/(Sink32 divisor) const;
 
+    // Check equality of two floats.
+    inline bool operator==(Sink32 other) const
+    {
+        if(other.isNaN() || isNaN())
+            return false;
+        return other.mValue == mValue;
+    }
+
     // Check if sink is NaN.
     inline bool isNaN() const
     {
