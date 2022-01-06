@@ -2,6 +2,7 @@
 #define SINK_HPP
 
 #include <cstdint>
+#include <string>
 
 class Sink32
 {
@@ -75,15 +76,7 @@ public:
     ~Sink32() = default;
 
     // Convert to a signed integer.
-    inline explicit operator std::int32_t() const
-    {
-        std::uint32_t sign = mValue & SIGN_BIT_LOC;
-        std::uint32_t exponent = ((mValue & EXPONENT_BITS_LOC)
-                                  >> MANTISSA_BITS) - BIAS;
-        std::uint32_t mantissa = (mValue & MANTISSA_BITS_LOC)
-            | MANTISSA_LEADING_ONE;
-        return (mantissa >> (MANTISSA_BITS - exponent)) | sign;
-    }
+    explicit operator std::int32_t() const;
 
     // Convert to a signed integer.
     inline std::int32_t toInt() const
@@ -123,6 +116,7 @@ public:
     // Check equality of two floats.
     inline bool operator==(Sink32 other) const
     {
+        // NaNs always evaluate to false when compared.
         if(other.isNaN() || isNaN())
             return false;
         return other.mValue == mValue;
@@ -167,6 +161,10 @@ public:
     {
         return mValue;
     }
+
+    // TODO square root, string conversion,
+
+    std::string toString(std::string::size_type precision = 6) const;
 
     // Get the mathematical exponent. If the Sink is NaN or
     // infinity return the smallest 32 bit integer (INT_MIN).

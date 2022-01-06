@@ -173,6 +173,31 @@ TEST(div, onedivone)
     ASSERT_EQ(1.f, static_cast<float>(Sink32(1) / Sink32(1)));
 }
 
+TEST(div, onedivnegone)
+{
+    ASSERT_EQ(-1.f, static_cast<float>(Sink32(1) / Sink32(-1)));
+}
+
+TEST(div, tendivone)
+{
+    ASSERT_EQ(10.f, static_cast<float>(Sink32(10) / Sink32(1)));
+}
+
+TEST(strconv, NaN)
+{
+    ASSERT_EQ("NaN", (Sink32(212) / Sink32(0)).toString());
+}
+
+TEST(strconv, zero)
+{
+    ASSERT_EQ("0.000000", Sink32(0).toString());
+}
+
+TEST(strconv, twotwelve0)
+{
+    ASSERT_EQ("212.000000", Sink32(212).toString());
+}
+
 int main(int argc, char *argv[])
 {
     std::cout << "The size of a sink32 is " << sizeof(Sink32) << '\n';

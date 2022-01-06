@@ -3,6 +3,9 @@
 #include <limits>
 #include <algorithm>
 #include <cstdlib>
+#include <string>
+
+using namespace std::string_literals;
 
 static inline std::int32_t twosComp(std::int32_t i)
 { return -i; } 
@@ -10,7 +13,7 @@ static inline std::int32_t twosComp(std::int32_t i)
 static inline std::uint32_t twosComp(std::uint32_t i)
 { return ~i + 1; }
 
-// Construct a new sink a sign bit (in its proper place (left-most bit)),
+// Construct a new sink with a sign bit (in its proper place (left-most bit)),
 // an unbiased mathematical exponent, and a mathematical mantissa.
 inline std::uint32_t constructSink(std::uint32_t sign, std::int32_t exp,
                                    std::uint32_t mantissa) 
@@ -196,8 +199,10 @@ Sink32 Sink32::operator*(Sink32 multiplier) const
 
 Sink32 Sink32::operator/(Sink32 divisor) const
 {
+    // Divide by 0 returns NAN.
     if(divisor == Sink32(0))
         return CreateLiteral(NAN_MIN);
+    
     // Dividend values.
     std::uint32_t dendSign = mValue & SIGN_BIT_LOC;
     std::int32_t dendExponent = frexp();
@@ -224,6 +229,19 @@ Sink32 Sink32::operator/(Sink32 divisor) const
                                       finalMantissa));
 }
 
+std::string Sink32::toString(std::string::size_type precision) const
+{
+    if(isNaN())
+        return "NaN";
+    else if(isInfinity())
+        return (isNegative() ? "-"s : ""s) + "Inf"s;
+    precision = std::max(precision, std::string::size_type(8));
+    // Precision plus dot plus whole components. 
+    std::string::size_type minSize = precision + 1 + 38;
+    auto mantissa = frexp();
+    return "";
+}
+
 Sink32::operator float() const
 {
     std::uint32_t valToCopy = mValue;
@@ -232,6 +250,19 @@ Sink32::operator float() const
     return reinterpret_cast<float&>(valToCopy);
 }
 
+Sink32::operator std::int32_t() const
+{
+    // Non-standard IEEE: Intel returns 0x80000000 when an int cannot
+    // represent the float.
+    if(isNaN() || isInfinity())
+        return static_cast<std::int32_t>(0x80000000);
+    std::uint32_t sign = mValue & SIGN_BIT_LOC;
+    std::uint32_t exponent = ((mValue & EXPONENT_BITS_LOC)
+                              >> MANTISSA_BITS) - BIAS;
+    std::uint32_t mantissa = (mValue & MANTISSA_BITS_LOC)
+        | MANTISSA_LEADING_ONE;
+    return (mantissa >> (MANTISSA_BITS - exponent)) | sign;
+}
 
 // Get the mathematical exponent. If the Sink is NaN or
 // infinity return the smallest 32 bit integer (INT_MIN).
