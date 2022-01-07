@@ -112,16 +112,12 @@ Sink32 Sink32::operator+(Sink32 other) const
     std::uint32_t sSign = mValue & SIGN_BIT_LOC;
     // Mathematical exponent.
     std::int32_t sExponent = frexp();
-    std::uint32_t sMantissa = mValue & MANTISSA_BITS_LOC;
-    if(isNormal())
-        sMantissa |= MANTISSA_LEADING_ONE;
+    auto sMantissa = getMantissa();
 
     std::uint32_t bSign = addend & SIGN_BIT_LOC;
     // Mathematical exponent.
     std::int32_t bExponent = other.frexp();
-    std::uint32_t bMantissa = addend & MANTISSA_BITS_LOC;
-    if(other.isNormal())
-        bMantissa |= MANTISSA_LEADING_ONE;
+    auto bMantissa = other.getMantissa();
 
     if(sExponent > bExponent)
     {
@@ -235,11 +231,12 @@ std::string Sink32::toString(std::string::size_type precision) const
         return "NaN";
     else if(isInfinity())
         return (isNegative() ? "-"s : ""s) + "Inf"s;
-    precision = std::max(precision, std::string::size_type(8));
+    // 32bit floats cannot go beyond 8 decimal points of precision.
     // Precision plus dot plus whole components. 
-    std::string::size_type minSize = precision + 1 + 38;
-    auto mantissa = frexp();
-    return "";
+    auto exponent = frexp();
+    auto mantissa = (getMantissa() << exponent) & MANTISSA_BITS_LOC;
+    return std::to_string(toInt()) + "."s +
+        std::to_string(mantissa).substr(0, precision);
 }
 
 Sink32::operator float() const
@@ -257,11 +254,10 @@ Sink32::operator std::int32_t() const
     if(isNaN() || isInfinity())
         return static_cast<std::int32_t>(0x80000000);
     std::uint32_t sign = mValue & SIGN_BIT_LOC;
-    std::uint32_t exponent = ((mValue & EXPONENT_BITS_LOC)
-                              >> MANTISSA_BITS) - BIAS;
-    std::uint32_t mantissa = (mValue & MANTISSA_BITS_LOC)
-        | MANTISSA_LEADING_ONE;
-    return (mantissa >> (MANTISSA_BITS - exponent)) | sign;
+    std::int32_t exponent = frexp();
+    std::uint32_t mantissa = getMantissa();
+    return (mantissa >> (static_cast<std::int32_t>(MANTISSA_BITS) - exponent))
+        | sign;
 }
 
 // Get the mathematical exponent. If the Sink is NaN or

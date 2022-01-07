@@ -26,6 +26,5 @@ add_library(
   ${SINK_HEADERS}
   )
 
-
 target_compile_features(sink PRIVATE cxx_std_17)
 target_compile_features(sink PRIVATE c_std_99)

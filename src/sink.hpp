@@ -162,9 +162,16 @@ public:
         return mValue;
     }
 
+    // Get the mathematical mantissa of the float.
+    inline std::uint32_t getMantissa() const
+    {
+        return mValue & MANTISSA_BITS_LOC |
+            (static_cast<std::uint32_t>(isNormal()) << MANTISSA_BITS);
+    }
+
     // TODO square root, string conversion,
 
-    std::string toString(std::string::size_type precision = 6) const;
+    std::string toString(std::string::size_type precision = 8) const;
 
     // Get the mathematical exponent. If the Sink is NaN or
     // infinity return the smallest 32 bit integer (INT_MIN).

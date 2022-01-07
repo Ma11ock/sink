@@ -190,12 +190,12 @@ TEST(strconv, NaN)
 
 TEST(strconv, zero)
 {
-    ASSERT_EQ("0.000000", Sink32(0).toString());
+    ASSERT_EQ("0.0", Sink32(0).toString());
 }
 
 TEST(strconv, twotwelve0)
 {
-    ASSERT_EQ("212.000000", Sink32(212).toString());
+    ASSERT_EQ("212.0", Sink32(212).toString());
 }
 
 int main(int argc, char *argv[])
