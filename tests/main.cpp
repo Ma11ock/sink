@@ -92,6 +92,11 @@ TEST(sub, onemthree)
     ASSERT_EQ(-2.f, static_cast<float>(Sink32(1) - Sink32(3)));
 }
 
+TEST(sub, s212m121p1)
+{
+    ASSERT_EQ(0.1f, static_cast<float>(Sink32(212) - Sink32(212.f)));
+}
+
 TEST(repr, negOne)
 {
     ASSERT_EQ(-1.f, static_cast<float>(Sink32(-1)));
@@ -193,9 +198,14 @@ TEST(strconv, zero)
     ASSERT_EQ("0.0", Sink32(0).toString());
 }
 
-TEST(strconv, twotwelve0)
+TEST(strconv, twotwelve)
 {
     ASSERT_EQ("212.0", Sink32(212).toString());
+}
+
+TEST(strconv, twotwelvep1)
+{
+    ASSERT_EQ("212.1", Sink32(212.1f).toString());
 }
 
 int main(int argc, char *argv[])

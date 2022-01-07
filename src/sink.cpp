@@ -7,11 +7,15 @@
 
 using namespace std::string_literals;
 
-static inline std::int32_t twosComp(std::int32_t i)
-{ return -i; } 
+namespace
+{
+    inline std::int32_t twosComp(std::int32_t i)
+    { return -i; } 
 
-static inline std::uint32_t twosComp(std::uint32_t i)
-{ return ~i + 1; }
+    inline std::uint32_t twosComp(std::uint32_t i)
+    { return ~i + 1; }
+}
+
 
 // Construct a new sink with a sign bit (in its proper place (left-most bit)),
 // an unbiased mathematical exponent, and a mathematical mantissa.
@@ -234,9 +238,9 @@ std::string Sink32::toString(std::string::size_type precision) const
     // 32bit floats cannot go beyond 8 decimal points of precision.
     // Precision plus dot plus whole components. 
     auto exponent = frexp();
-    auto mantissa = (getMantissa() << exponent) & MANTISSA_BITS_LOC;
+    Sink32 remainder = Sink32(toInt()) - *this;
     return std::to_string(toInt()) + "."s +
-        std::to_string(mantissa).substr(0, precision);
+        std::to_string(remainder.getMantissa() << 9).substr(0, precision);
 }
 
 Sink32::operator float() const
