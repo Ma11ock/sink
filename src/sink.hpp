@@ -122,6 +122,12 @@ public:
         return other.mValue == mValue;
     }
 
+    // Check if sink is zero (positive or negative).
+    inline bool isZero() const
+    {
+        return (~SIGN_BIT_LOC & mValue) == 0;
+    }
+
     // Check if sink is NaN.
     inline bool isNaN() const
     {

@@ -253,10 +253,16 @@ Sink32::operator std::int32_t() const
     // represent the float.
     if(isNaN() || isInfinity())
         return static_cast<std::int32_t>(0x80000000);
+    // 0 is special because it is the only subnormal integer.
+    else if(isZero())
+        return 0;
     std::uint32_t sign = mValue & SIGN_BIT_LOC;
-    std::int32_t exponent = frexp();
-    std::uint32_t mantissa = getMantissa();
-    return (mantissa >> (static_cast<std::int32_t>(MANTISSA_BITS) - exponent))
+    auto exp = static_cast<std::int32_t>((mValue & EXPONENT_BITS_LOC)
+                                         >> MANTISSA_BITS) -
+        static_cast<std::int32_t>(BIAS); 
+    std::uint32_t mantissa = (mValue & MANTISSA_BITS_LOC)
+        | MANTISSA_LEADING_ONE;
+    return (mantissa >> (static_cast<std::int32_t>(MANTISSA_BITS) - exp))
         | sign;
 }
 
@@ -267,8 +273,8 @@ std::int32_t Sink32::frexp() const
     auto exp = static_cast<std::int32_t>((mValue & EXPONENT_BITS_LOC)
                                          >> MANTISSA_BITS);
     if(isNormal())
-        return exp - BIAS;
+        return exp - static_cast<std::int32_t>(BIAS);
     else if(isSubNormal())
-        return exp - SUB_BIAS;
+        return exp - static_cast<std::int32_t>(SUB_BIAS);
     return std::numeric_limits<std::int32_t>::min();
 }
