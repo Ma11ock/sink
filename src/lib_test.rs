@@ -17,4 +17,9 @@
 #[path = "lib.rs"]
 mod repr_test {
     use super::super::*;
+
+    #[test]
+    fn zero_literal() {
+        assert_eq!(0, Sink::build_literal(0).value);
+    }
 }

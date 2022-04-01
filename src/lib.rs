@@ -15,6 +15,8 @@
 #[cfg(test)]
 mod lib_test;
 
+use std::mem;
+
 #[allow(arithmetic_overflow)]
 
 /// The number of sign bits.
@@ -45,6 +47,10 @@ const SUB_BIAS: i32 = 126;
 /// The location of the mantissa's implicit leading one.
 const MANTISSA_LEADING_ONE: u32 = 0x800000;
 
+fn twos_comp(i: u32) -> u32 {
+    !i + 1
+}
+
 struct Sink {
     value: u32,
 }
@@ -58,14 +64,82 @@ impl Sink {
     fn is_zero(&self) -> bool {
         (!SIGN_BIT_LOC & self.value) == 0
     }
+
+    pub fn build_literal(m: u32) -> Self {
+        Self { value: m }
+    }
+
+    pub fn build(sign: u32, exp: i32, mantissa: u32) -> Self {
+        Self {
+            value: (sign & SIGN_BIT_LOC)
+                | ((((exp + (if exp == -SUB_BIAS { SUB_BIAS } else { BIAS })) as u32)
+                    << MANTISSA_BITS)
+                    & EXPONENT_BITS_LOC)
+                | (mantissa & MANTISSA_BITS_LOC),
+        }
+    }
+
+    pub fn create_nan() -> Self {
+        Self { value: NAN_MIN }
+    }
+
+    pub fn new() -> Self {
+        Self { value: 0 }
+    }
+
+    pub fn build_float(f: f32) -> Self {
+        unsafe { Self::build_literal(mem::transmute::<f32, u32>(f)) }
+    }
+
+    pub fn from_uint(v: u32) -> Self {
+        if v == 0 {
+            Self::new()
+        } else if v > 0xFFFFFF * 2 {
+            // Out of range of a 32 bit float. Return NaN.
+            Self::create_nan()
+        } else {
+            let mut value = v;
+            let mut shifts: u32 = 0;
+            while (value & MANTISSA_LEADING_ONE) == 0 {
+                shifts += 1;
+                value <<= 1;
+            }
+
+            let exponent: u32 = BIAS as u32 + MANTISSA_BITS - shifts;
+            Self::build_literal((exponent << MANTISSA_BITS) | (value & MANTISSA_BITS_LOC))
+        }
+    }
+
+    pub fn from_sint(v: i32) -> Self {
+        if v == 0 {
+            Self::new()
+        } else if (v > 0xFFFFFF * 2) || (v < 0xFFFFFF * 2) {
+            // Out of range of a 32 bit float. Return NaN.
+            Self::create_nan()
+        } else {
+            let mut t_value = v.abs() as u32;
+            let mut shifts: u32 = 0;
+            while (v as u32 & MANTISSA_LEADING_ONE) == 0 {
+                shifts += 1;
+                t_value <<= 1;
+            }
+
+            let exponent: u32 = BIAS as u32 + MANTISSA_BITS - shifts;
+            Self::build_literal(
+                (t_value & SIGN_BIT_LOC)
+                    | (exponent << MANTISSA_BITS)
+                    | (t_value & MANTISSA_BITS_LOC),
+            )
+        }
+    }
 }
 
 impl PartialEq for Sink {
-    fn eq(&self, other: &Rhs) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         !(self.is_nan() || other.is_nan()) && (self.value == other.value)
     }
 
-    fn ne(&self, other: &Rhs) -> bool {
+    fn ne(&self, other: &Self) -> bool {
         !(self == other)
     }
 }
