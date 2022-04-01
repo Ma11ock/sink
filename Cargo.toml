@@ -1,0 +1,11 @@
+[package]
+name = "sink"
+version = "0.1.0"
+authors = ["Ryan Jeffrey <ryan@ryanmj.xyz>"]
+license = "AGPL-3.0"
+description = "Software 32 bit IEEE 754 floating point unit"
+homepage = "https://github.com/Ma11ock/chip8"
+keywords = ["float", "emulator", "ieee754"]
+publish = false
+[profile.dev]
+overflow-checks = false
