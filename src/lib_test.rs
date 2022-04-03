@@ -22,4 +22,9 @@ mod repr_test {
     fn zero_literal() {
         assert_eq!(0, Sink::build_literal(0).value);
     }
+
+    #[test]
+    fn two_u32() {
+        assert_eq!(2f32.to_bits(), Sink::from_uint(2).value);
+    }
 }

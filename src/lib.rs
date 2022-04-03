@@ -88,7 +88,7 @@ impl Sink {
     }
 
     pub fn build_float(f: f32) -> Self {
-        unsafe { Self::build_literal(mem::transmute::<f32, u32>(f)) }
+        Self::build_literal(f.to_bits())
     }
 
     pub fn from_uint(v: u32) -> Self {
