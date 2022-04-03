@@ -15,8 +15,6 @@
 #[cfg(test)]
 mod lib_test;
 
-use std::mem;
-
 #[allow(arithmetic_overflow)]
 
 /// The number of sign bits.
@@ -100,7 +98,7 @@ impl Sink {
         } else {
             let mut value = v;
             let mut shifts: u32 = 0;
-            while (value & MANTISSA_LEADING_ONE) == 0 {
+            while (value & MANTISSA_LEADING_ONE) == 0 && shifts < MANTISSA_BITS {
                 shifts += 1;
                 value <<= 1;
             }
@@ -113,22 +111,22 @@ impl Sink {
     pub fn from_sint(v: i32) -> Self {
         if v == 0 {
             Self::new()
-        } else if (v > 0xFFFFFF * 2) || (v < 0xFFFFFF * 2) {
+        } else if (v > 0xFFFFFF * 2) || (v < -(0xFFFFFF * 2)) {
             // Out of range of a 32 bit float. Return NaN.
             Self::create_nan()
         } else {
-            let mut t_value = v.abs() as u32;
+            let mut value = v as u32;
             let mut shifts: u32 = 0;
-            while (v as u32 & MANTISSA_LEADING_ONE) == 0 {
+            while (value & MANTISSA_LEADING_ONE) == 0 && shifts < MANTISSA_BITS {
                 shifts += 1;
-                t_value <<= 1;
+                value <<= 1;
             }
 
             let exponent: u32 = BIAS as u32 + MANTISSA_BITS - shifts;
             Self::build_literal(
-                (t_value & SIGN_BIT_LOC)
+                (if v < 0 { SIGN_BIT_LOC } else { 0 })
                     | (exponent << MANTISSA_BITS)
-                    | (t_value & MANTISSA_BITS_LOC),
+                    | (value & MANTISSA_BITS_LOC),
             )
         }
     }

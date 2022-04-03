@@ -24,7 +24,54 @@ mod repr_test {
     }
 
     #[test]
+    fn zero_u32() {
+        assert_eq!(0f32.to_bits(), Sink::from_uint(0).value);
+    }
+
+    #[test]
+    fn one_u32() {
+        assert_eq!(1f32.to_bits(), Sink::from_uint(1).value);
+    }
+
+    #[test]
     fn two_u32() {
         assert_eq!(2f32.to_bits(), Sink::from_uint(2).value);
+    }
+
+    #[test]
+    fn zero_s32() {
+        assert_eq!(0f32.to_bits(), Sink::from_sint(0).value);
+    }
+
+    #[test]
+    fn one_s32() {
+        assert_eq!(1f32.to_bits(), Sink::from_sint(1).value);
+    }
+
+    #[test]
+    fn two_s32() {
+        assert_eq!(2f32.to_bits(), Sink::from_sint(2).value);
+    }
+
+    #[test]
+    fn max_u32() {
+        // TODO investigate as to why 16777216f32 does not work.
+        assert_eq!(16777215f32.to_bits(), Sink::from_uint(0xFFFFFF).value);
+    }
+
+    #[test]
+    fn neg_one_s32() {
+        assert_eq!((-1f32).to_bits(), Sink::from_sint(-1).value);
+    }
+
+    #[test]
+    fn neg_two_s32() {
+        assert_eq!((-2f32).to_bits(), Sink::from_uint(2).value & SIGN_BIT_LOC);
+    }
+
+    #[test]
+    fn min_s32() {
+        // TODO investigate as to why 16777216f32 does not work.
+        assert_eq!((-16777215f32).to_bits(), Sink::from_sint(-0xFFFFFF).value);
     }
 }
